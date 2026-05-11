@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1923">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StockPro">
+<title>StockPro — Gestion Produits</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+
+<!-- JsBarcode CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+
+<style>
+:root {
+  --bg:        #0f1923;
+  --surface:   #162130;
+  --surface2:  #1e2f42;
+  --border:    #263548;
+  --accent:    #00d4ff;
+  --accent2:   #ff6b35;
+  --green:     #00e5a0;
+  --red:       #ff3b5c;
+  --yellow:    #ffd166;
+  --text:      #e8f0f8;
+  --muted:     #6b8299;
+  --cat-savon: #3b82f6;
+  --cat-javel: #10b981;
+  --cat-desin: #f59e0b;
+  --cat-autre: #8b5cf6;
+  --r:         12px;
+  --r2:        8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+.app-header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(15,25,35,.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; letter-spacing: -.5px; }
+.logo span { color: var(--accent); }
+.header-actions { display: flex; gap: 8px; }
+.btn-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface); color: var(--text);
+  font-size: 1.1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: .15s;
+}
+.btn-icon:active { opacity: .7; transform: scale(.93); }
+.btn-new {
+  height: 40px; padding: 0 16px; border-radius: 10px;
+  border: none; background: var(--accent); color: #000;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: .85rem;
+  cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: .15s;
+}
+.btn-new:active { opacity: .8; transform: scale(.96); }
+
+/* ── SEARCH & FILTERS ── */
+.top-controls {
+  padding: 12px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.search-wrap {
+  position: relative;
+}
+.search-wrap input {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r2); color: var(--text); padding: 10px 14px 10px 38px;
+  font-family: 'DM Sans', sans-serif; font-size: .9rem;
+  outline: none; transition: border-color .2s;
+}
+.search-wrap input:focus { border-color: var(--accent); }
+.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: .9rem; color: var(--muted); }
+.filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.filters::-webkit-scrollbar { display: none; }
+.filter-btn {
+  flex-shrink: 0; padding: 6px 12px; border-radius: 20px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--muted); font-size: .78rem; font-family: 'Syne', sans-serif; font-weight: 600;
+  cursor: pointer; transition: .15s; white-space: nowrap;
+}
+.filter-btn.active { background: var(--accent); border-color: var(--accent); color: #000; }
+.filter-btn:active { opacity: .75; }
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+.stat {
+  flex: 1; padding: 12px 8px;
+  text-align: center; border-right: 1px solid var(--border);
+}
+.stat:last-child { border-right: none; }
+.stat-val { font-family: 'Space Mono', monospace; font-size: 1.1rem; font-weight: 700; }
+.stat-lbl { font-size: .65rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+
+/* ── PRODUCT LIST ── */
+.product-list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.product-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+  transition: transform .15s, box-shadow .15s;
+}
+.product-card:active { transform: scale(.985); }
+.card-stripe {
+  height: 3px;
+  background: var(--cat-color, var(--accent));
+}
+.card-body { padding: 14px; }
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.card-title-block { flex: 1; min-width: 0; }
+.card-name {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: .95rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.card-code { font-family: 'Space Mono', monospace; font-size: .72rem; color: var(--muted); margin-top: 3px; }
+.badge {
+  flex-shrink: 0; margin-left: 8px;
+  padding: 3px 8px; border-radius: 20px; font-size: .7rem;
+  font-family: 'Syne', sans-serif; font-weight: 700;
+}
+.badge-cat { background: color-mix(in srgb, var(--cat-color) 20%, transparent); color: var(--cat-color); }
+.badge-alert { background: color-mix(in srgb, var(--red) 20%, transparent); color: var(--red); }
+.badge-expire { background: color-mix(in srgb, var(--yellow) 20%, transparent); color: var(--yellow); }
+
+.card-info { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+.info-block { background: var(--surface2); border-radius: var(--r2); padding: 8px; }
+.info-val { font-family: 'Space Mono', monospace; font-size: .82rem; font-weight: 700; }
+.info-lbl { font-size: .62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+.info-val.green { color: var(--green); }
+.info-val.red { color: var(--red); }
+.info-val.yellow { color: var(--yellow); }
+
+.barcode-preview { width: 100%; display: flex; justify-content: center; margin-bottom: 12px; background: #fff; border-radius: var(--r2); padding: 8px; }
+.barcode-preview svg, .barcode-preview canvas { max-width: 100%; height: 55px; }
+
+.card-actions { display: flex; gap: 8px; }
+.btn-action {
+  flex: 1; padding: 9px 6px; border-radius: var(--r2);
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text); font-size: .75rem;
+  font-family: 'Syne', sans-serif; font-weight: 600;
+  cursor: pointer; transition: .15s;
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.btn-action.primary {
+  border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent);
+}
+.btn-action.danger { border-color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); }
+.btn-action:active { opacity: .7; transform: scale(.96); }
+
+/* ── MODALS ── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.75); backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end;
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-sheet {
+  width: 100%; max-height: 96vh;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  border-top: 1px solid var(--border);
+  overflow-y: auto;
+  transform: translateY(40px);
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.modal-overlay.open .modal-sheet { transform: translateY(0); }
+.modal-handle {
+  width: 36px; height: 4px; background: var(--border); border-radius: 2px;
+  margin: 12px auto 0;
+}
+.modal-header {
+  padding: 16px 20px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); z-index: 2;
+}
+.modal-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.1rem; }
+.btn-close {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--muted); font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── FICHE PRODUIT ── */
+.fiche-content { padding: 16px 20px 32px; }
+.fiche-header {
+  margin-bottom: 16px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.fiche-color-dot {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+  background: var(--cat-color, var(--accent));
+}
+.fiche-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.3rem; line-height: 1.2; }
+.fiche-code { font-family: 'Space Mono', monospace; font-size: .78rem; color: var(--muted); margin-top: 4px; }
+.fiche-badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+.section-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: .75rem;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
+  margin-bottom: 8px; margin-top: 16px;
+}
+.fiche-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.fiche-cell {
+  background: var(--surface2); border-radius: var(--r2); padding: 10px 12px;
+}
+.fiche-cell.full { grid-column: 1/-1; }
+.fiche-cell.highlight { border: 1px solid var(--green); }
+.fiche-cell-lbl { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 4px; }
+.fiche-cell-val {
+  font-family: 'Space Mono', monospace; font-size: .92rem; font-weight: 700;
+}
+.fiche-cell-val.accent { color: var(--accent); }
+.fiche-cell-val.green { color: var(--green); }
+.fiche-cell-val.red { color: var(--red); }
+.fiche-cell-val.yellow { color: var(--yellow); }
+
+.marge-bar-wrap { margin-top: 6px; }
+.marge-bar-bg { background: var(--border); border-radius: 4px; height: 6px; overflow: hidden; }
+.marge-bar-fill { height: 100%; border-radius: 4px; background: var(--green); transition: width .6s; }
+
+.barcode-zone {
+  background: #fff; border-radius: var(--r); padding: 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  margin-top: 12px;
+}
+.barcode-zone svg, .barcode-zone canvas { width: 100% !important; height: 80px; }
+
+.fiche-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+/* ── FORMULAIRE ── */
+.form-content { padding: 16px 20px 40px; }
+.form-section-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: .75rem;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--accent);
+  margin-bottom: 10px; margin-top: 20px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.form-section-title:first-child { margin-top: 0; }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-row.full { grid-template-columns: 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+.field label { font-size: .75rem; color: var(--muted); font-family: 'Syne', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.field input, .field select, .field textarea {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r2); color: var(--text);
+  padding: 10px 12px; font-family: 'DM Sans', sans-serif; font-size: .9rem;
+  outline: none; transition: border-color .2s; width: 100%;
+}
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+.field select option { background: #1e2f42; }
+.field textarea { resize: vertical; min-height: 70px; }
+
+.code-gen-row { display: flex; gap: 8px; }
+.code-gen-row input { flex: 1; }
+.btn-gen {
+  flex-shrink: 0; padding: 0 14px; border-radius: var(--r2);
+  border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent); font-family: 'Syne', sans-serif; font-weight: 700; font-size: .78rem;
+  cursor: pointer; white-space: nowrap;
+}
+
+.marge-preview {
+  background: var(--surface2); border: 1px solid var(--green);
+  border-radius: var(--r2); padding: 10px 12px; margin-bottom: 10px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.marge-preview-val { font-family: 'Space Mono', monospace; font-size: 1rem; font-weight: 700; color: var(--green); }
+.marge-preview-lbl { font-size: .75rem; color: var(--muted); }
+
+.btn-submit {
+  width: 100%; padding: 14px; border-radius: var(--r);
+  border: none; background: var(--accent); color: #000;
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1rem;
+  cursor: pointer; margin-top: 8px; transition: .15s;
+}
+.btn-submit:active { opacity: .8; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--green); color: #000;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: .85rem;
+  padding: 10px 20px; border-radius: 20px; z-index: 500;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+  opacity: 0; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.error { background: var(--red); color: #fff; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted);
+}
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state p { font-size: .9rem; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── PWA INSTALL BANNER ── */
+.install-banner {
+  margin: 10px 16px 0;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid var(--accent);
+  border-radius: var(--r2); padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.install-banner p { flex: 1; font-size: .8rem; color: var(--text); line-height: 1.4; }
+.install-banner p strong { color: var(--accent); }
+.btn-install {
+  flex-shrink: 0; padding: 7px 14px; border-radius: var(--r2);
+  border: 1px solid var(--accent); background: var(--accent);
+  color: #000; font-family: 'Syne', sans-serif; font-weight: 700; font-size: .78rem;
+  cursor: pointer;
+}
+.btn-dismiss { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header">
+  <div class="logo">Stock<span>Pro</span></div>
+  <div class="header-actions">
+    <button class="btn-new" onclick="openForm()">
+      <span>＋</span> NOUVEAU
+    </button>
+  </div>
+</header>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="installBanner" style="display:none">
+  <p>📲 <strong>Installer l'app</strong> sur votre Android : Menu Chrome → "Ajouter à l'écran d'accueil"</p>
+  <button class="btn-dismiss" onclick="document.getElementById('installBanner').style.display='none'">✕</button>
+</div>
+
+<!-- SEARCH & FILTERS -->
+<div class="top-controls">
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="search" id="searchInput" placeholder="Nom, code-barres, fournisseur…" oninput="renderList()">
+  </div>
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">Tous</button>
+    <button class="filter-btn" onclick="setFilter('savon', this)">🔵 Savon</button>
+    <button class="filter-btn" onclick="setFilter('javel', this)">🟢 Javel</button>
+    <button class="filter-btn" onclick="setFilter('desinfectant', this)">🟡 Désinfectant</button>
+    <button class="filter-btn" onclick="setFilter('autre', this)">🟣 Autre</button>
+    <button class="filter-btn" onclick="setFilter('alerte', this)">🔴 Alerte stock</button>
+  </div>
+</div>
+
+<!-- STATS BAR -->
+<div class="stats-bar" id="statsBar"></div>
+
+<!-- PRODUCT LIST -->
+<div class="product-list" id="productList"></div>
+
+<!-- ═══════ MODAL FICHE PRODUIT ═══════ -->
+<div class="modal-overlay" id="ficheModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">📋 Fiche Produit</span>
+      <button class="btn-close" onclick="closeModal('ficheModal')">✕</button>
+    </div>
+    <div class="fiche-content" id="ficheContent"></div>
+  </div>
+</div>
+
+<!-- ═══════ MODAL FORMULAIRE ═══════ -->
+<div class="modal-overlay" id="formModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="formTitle">➕ Nouveau Produit</span>
+      <button class="btn-close" onclick="closeModal('formModal')">✕</button>
+    </div>
+    <div class="form-content">
+
+      <div class="form-section-title">🏷️ Identification</div>
+      <div class="field">
+        <label>Nom du produit *</label>
+        <input type="text" id="f_nom" placeholder="Ex : Savon Liquide Premium 1L" oninput="updateCodeAuto()">
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Catégorie *</label>
+          <select id="f_categorie" onchange="updateCodeAuto()">
+            <option value="savon">Savon</option>
+            <option value="javel">Eau de Javel</option>
+            <option value="desinfectant">Désinfectant</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Contenance</label>
+          <select id="f_contenance" onchange="updateCodeAuto()">
+            <option value="250ml">250 ml</option>
+            <option value="500ml">500 ml</option>
+            <option value="1L" selected>1 L</option>
+            <option value="2L">2 L</option>
+            <option value="5L">5 L</option>
+            <option value="10L">10 L</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Code-barres *</label>
+        <div class="code-gen-row">
+          <input type="text" id="f_code" placeholder="237XXXYYY000" maxlength="13">
+          <button class="btn-gen" onclick="genCode()">🔄 Générer</button>
+        </div>
+      </div>
+      <div class="field full">
+        <label>Description</label>
+        <textarea id="f_description" placeholder="Description du produit, usage, composition…"></textarea>
+      </div>
+
+      <div class="form-section-title">💰 Prix & Marges</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Prix achat (FCFA) *</label>
+          <input type="number" id="f_prixAchat" placeholder="0" oninput="calcMarge()">
+        </div>
+        <div class="field">
+          <label>Prix vente (FCFA) *</label>
+          <input type="number" id="f_prixVente" placeholder="0" oninput="calcMarge()">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>TVA (%)</label>
+          <select id="f_tva" onchange="calcMarge()">
+            <option value="0">0% (Exonéré)</option>
+            <option value="19.25" selected>19,25% (Standard)</option>
+            <option value="5">5% (Réduit)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Devise</label>
+          <select id="f_devise">
+            <option value="FCFA">FCFA</option>
+            <option value="EUR">EUR</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+      </div>
+      <div class="marge-preview" id="margePreview">
+        <span class="marge-preview-lbl">Marge nette</span>
+        <span class="marge-preview-val" id="margeVal">— FCFA (—%)</span>
+      </div>
+
+      <div class="form-section-title">📦 Stock & Logistique</div>
+      <div class="form-row">
+        <div class="field">
+          <label>Stock actuel *</label>
+          <input type="number" id="f_stock" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Stock minimum</label>
+          <input type="number" id="f_stockMin" placeholder="5">
+        </div>
+      </div>
+      <div class="field">
+        <label>Fournisseur</label>
+        <input type="text" id="f_fournisseur" placeholder="Nom du fournisseur">
+      </div>
+      <div class="field">
+        <label>N° de lot</label>
+        <input type="text" id="f_lot" placeholder="LOT-XXXX">
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Date fabrication</label>
+          <input type="date" id="f_dateFab">
+        </div>
+        <div class="field">
+          <label>Date expiration</label>
+          <input type="date" id="f_dateExp">
+        </div>
+      </div>
+
+      <div class="form-section-title">📝 Notes</div>
+      <div class="field">
+        <label>Notes internes</label>
+        <textarea id="f_notes" placeholder="Conditions de stockage, alertes particulières…"></textarea>
+      </div>
+
+      <button class="btn-submit" onclick="submitForm()">✅ ENREGISTRER LE PRODUIT</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// DONNÉES
+// ══════════════════════════════════════
+const CAT_COLORS = {
+  savon: '#3b82f6',
+  javel: '#10b981',
+  desinfectant: '#f59e0b',
+  autre: '#8b5cf6'
+};
+const CAT_LABELS = {
+  savon: 'Savon',
+  javel: 'Eau de Javel',
+  desinfectant: 'Désinfectant',
+  autre: 'Autre'
+};
+
+let products = [
+  {
+    id: 'p1', nom: 'Savon Liquide', contenance: '1L', categorie: 'savon',
+    code: '237675001000', description: 'Savon liquide polyvalent pour mains et surfaces. Formule douce enrichie en glycérine.',
+    prixVente: 1500, prixAchat: 900, tva: 19.25, devise: 'FCFA',
+    stock: 48, stockMin: 10,
+    fournisseur: 'SABC Distribution', lot: 'LOT-2024-089',
+    dateFab: '2024-01-15', dateExp: '2026-01-15',
+    notes: 'Stocker à l\'abri de la chaleur. Température max 35°C.'
+  },
+  {
+    id: 'p2', nom: 'Savon Liquide', contenance: '5L', categorie: 'savon',
+    code: '237675005000', description: 'Format professionnel 5 litres pour usage intensif.',
+    prixVente: 6500, prixAchat: 4000, tva: 19.25, devise: 'FCFA',
+    stock: 4, stockMin: 5,
+    fournisseur: 'SABC Distribution', lot: 'LOT-2024-090',
+    dateFab: '2024-01-20', dateExp: '2026-01-20',
+    notes: ''
+  },
+  {
+    id: 'p3', nom: 'Eau de Javel', contenance: '1L', categorie: 'javel',
+    code: '237240001000', description: 'Eau de Javel concentrée 12° chlore actif. Désinfectant puissant.',
+    prixVente: 800, prixAchat: 450, tva: 0, devise: 'FCFA',
+    stock: 120, stockMin: 20,
+    fournisseur: 'Chimie Cameroun SA', lot: 'LOT-2024-112',
+    dateFab: '2024-03-01', dateExp: '2025-03-01',
+    notes: 'Attention : date d\'expiration approche !'
+  },
+  {
+    id: 'p4', nom: 'Eau de Javel', contenance: '5L', categorie: 'javel',
+    code: '237240005000', description: 'Bidon professionnel 5L. Idéal pour hôtels, restaurants, écoles.',
+    prixVente: 3500, prixAchat: 2000, tva: 0, devise: 'FCFA',
+    stock: 22, stockMin: 8,
+    fournisseur: 'Chimie Cameroun SA', lot: 'LOT-2024-113',
+    dateFab: '2024-03-05', dateExp: '2025-09-05',
+    notes: ''
+  }
+];
+
+let currentFilter = 'all';
+let editingId = null;
+
+// ══════════════════════════════════════
+// PERSISTENCE
+// ══════════════════════════════════════
+function saveData() {
+  try { localStorage.setItem('stockpro_products', JSON.stringify(products)); } catch(e) {}
+}
+function loadData() {
+  try {
+    const d = localStorage.getItem('stockpro_products');
+    if (d) products = JSON.parse(d);
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════
+function getCatColor(cat) { return CAT_COLORS[cat] || '#8b5cf6'; }
+
+function isExpired(p) {
+  if (!p.dateExp) return false;
+  return new Date(p.dateExp) < new Date();
+}
+function isLowStock(p) { return p.stock <= (p.stockMin || 5); }
+function marge(p) {
+  const tvaFactor = 1 + p.tva / 100;
+  const achatHT = p.prixAchat / tvaFactor;
+  const venteHT = p.prixVente / tvaFactor;
+  return venteHT - achatHT;
+}
+function margePercent(p) {
+  const achatHT = p.prixAchat / (1 + p.tva/100);
+  if (!achatHT) return 0;
+  return (marge(p) / achatHT) * 100;
+}
+function fmt(n) { return Math.round(n).toLocaleString('fr-FR'); }
+
+function filteredProducts() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return products.filter(p => {
+    const matchFilter =
+      currentFilter === 'all' ? true :
+      currentFilter === 'alerte' ? isLowStock(p) :
+      p.categorie === currentFilter;
+    const matchSearch = !q ||
+      p.nom.toLowerCase().includes(q) ||
+      p.code.includes(q) ||
+      (p.fournisseur||'').toLowerCase().includes(q) ||
+      (p.categorie||'').toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+}
+
+function renderStats() {
+  const fp = filteredProducts();
+  const totalStock = fp.reduce((s,p) => s + p.stock, 0);
+  const alerts = fp.filter(isLowStock).length;
+  const valeur = fp.reduce((s,p) => s + p.stock * p.prixVente, 0);
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat">
+      <div class="stat-val">${fp.length}</div>
+      <div class="stat-lbl">Produits</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">${totalStock}</div>
+      <div class="stat-lbl">En stock</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" style="color:var(--red)">${alerts}</div>
+      <div class="stat-lbl">Alertes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" style="font-size:.75rem">${fmt(valeur/1000)}k</div>
+      <div class="stat-lbl">Val. FCFA</div>
+    </div>
+  `;
+}
+
+function renderList() {
+  renderStats();
+  const fp = filteredProducts();
+  const el = document.getElementById('productList');
+  if (!fp.length) {
+    el.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Aucun produit trouvé</p></div>`;
+    return;
+  }
+  el.innerHTML = '';
+  fp.forEach(p => {
+    const color = getCatColor(p.categorie);
+    const low = isLowStock(p);
+    const exp = isExpired(p);
+    const m = marge(p);
+    const mp = margePercent(p);
+    const card = document.createElement('div');
+    card.className = 'product-card';
+    card.style.setProperty('--cat-color', color);
+    card.innerHTML = `
+      <div class="card-stripe"></div>
+      <div class="card-body">
+        <div class="card-top">
+          <div class="card-title-block">
+            <div class="card-name">${p.nom} ${p.contenance}</div>
+            <div class="card-code">📊 ${p.code}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+            <span class="badge badge-cat" style="--cat-color:${color}">${CAT_LABELS[p.categorie]||p.categorie}</span>
+            ${low ? `<span class="badge badge-alert">⚠ Stock bas</span>` : ''}
+            ${exp ? `<span class="badge badge-expire">⏰ Expiré</span>` : ''}
+          </div>
+        </div>
+        <div class="card-info">
+          <div class="info-block">
+            <div class="info-val">${fmt(p.prixVente)} <small style="font-size:.6rem;opacity:.7">FCFA</small></div>
+            <div class="info-lbl">Prix vente</div>
+          </div>
+          <div class="info-block">
+            <div class="info-val ${low ? 'red' : ''}">${p.stock} <small style="font-size:.6rem;opacity:.7">unités</small></div>
+            <div class="info-lbl">Stock</div>
+          </div>
+          <div class="info-block">
+            <div class="info-val green">${fmt(mp)}%</div>
+            <div class="info-lbl">Marge</div>
+          </div>
+        </div>
+        <div class="barcode-preview">
+          <svg id="bc_${p.id}"></svg>
+        </div>
+        <div class="card-actions">
+          <button class="btn-action primary" onclick="openFiche('${p.id}')">🔍 VOIR FICHE</button>
+          <button class="btn-action" onclick="openEditForm('${p.id}')">✏ Éditer</button>
+          <button class="btn-action" onclick="downloadBarcode('${p.id}','${p.nom} ${p.contenance}')">⬇</button>
+          <button class="btn-action danger" onclick="deleteProduct('${p.id}')">🗑</button>
+        </div>
+      </div>
+    `;
+    el.appendChild(card);
+    // Render barcode
+    setTimeout(() => {
+      try {
+        JsBarcode(`#bc_${p.id}`, p.code, {
+          format: 'CODE128', width: 1.4, height: 50,
+          displayValue: true, fontSize: 10, margin: 4,
+          background: '#ffffff', lineColor: '#000000'
+        });
+      } catch(e) {}
+    }, 50);
+  });
+}
+
+// ══════════════════════════════════════
+// FICHE PRODUIT
+// ══════════════════════════════════════
+function openFiche(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const color = getCatColor(p.categorie);
+  const low = isLowStock(p);
+  const exp = isExpired(p);
+  const m = marge(p);
+  const mp = margePercent(p);
+  const barFill = Math.min(100, Math.round(mp));
+
+  let daysToExp = null;
+  if (p.dateExp) {
+    daysToExp = Math.round((new Date(p.dateExp) - new Date()) / 86400000);
+  }
+
+  document.getElementById('ficheContent').innerHTML = `
+    <div class="fiche-header">
+      <div class="fiche-color-dot" style="background:${color}"></div>
+      <div>
+        <div class="fiche-name">${p.nom} ${p.contenance}</div>
+        <div class="fiche-code">CODE: ${p.code}</div>
+        <div class="fiche-badges">
+          <span class="badge badge-cat" style="--cat-color:${color}">${CAT_LABELS[p.categorie]||p.categorie}</span>
+          ${low ? `<span class="badge badge-alert">⚠ STOCK BAS</span>` : ''}
+          ${exp ? `<span class="badge badge-expire">⏰ EXPIRÉ</span>` : ''}
+          ${daysToExp !== null && !exp && daysToExp < 60 ? `<span class="badge badge-expire">⏳ Expire dans ${daysToExp}j</span>` : ''}
+        </div>
+      </div>
+    </div>
+
+    ${p.description ? `<div style="font-size:.85rem;color:var(--muted);line-height:1.5;margin-bottom:4px;">${p.description}</div>` : ''}
+
+    <div class="section-title">💰 Tarification</div>
+    <div class="fiche-grid">
+      <div class="fiche-cell">
+        <div class="fiche-cell-lbl">Prix de vente TTC</div>
+        <div class="fiche-cell-val accent">${fmt(p.prixVente)} ${p.devise}</div>
+      </div>
+      <div class="fiche-cell">
+        <div class="fiche-cell-lbl">Prix d'achat TTC</div>
+        <div class="fiche-cell-val">${fmt(p.prixAchat)} ${p.devise}</div>
+      </div>
+      <div class="fiche-cell">
+        <div class="fiche-cell-lbl">TVA appliquée</div>
+        <div class="fiche-cell-val">${p.tva}%</div>
+      </div>
+      <div class="fiche-cell highlight">
+        <div class="fiche-cell-lbl">Marge nette HT</div>
+        <div class="fiche-cell-val green">${fmt(m)} ${p.devise}</div>
+      </div>
+      <div class="fiche-cell full">
+        <div class="fiche-cell-lbl">Taux de marge : ${fmt(mp)}%</div>
+        <div class="marge-bar-wrap">
+          <div class="marge-bar-bg">
+            <div class="marge-bar-fill" style="width:${barFill}%;background:${mp > 30 ? 'var(--green)' : mp > 15 ? 'var(--yellow)' : 'var(--red)'}"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">📦 Stock</div>
+    <div class="fiche-grid">
+      <div class="fiche-cell">
+        <div class="fiche-cell-lbl">Stock actuel</div>
+        <div class="fiche-cell-val ${low ? 'red' : 'green'}">${p.stock} unités</div>
+      </div>
+      <div class="fiche-cell">
+        <div class="fiche-cell-lbl">Seuil minimum</div>
+        <div class="fiche-cell-val">${p.stockMin || 5} unités</div>
+      </div>
+      <div class="fiche-cell full">
+        <div class="fiche-cell-lbl">Valeur en stock</div>
+        <div class="fiche-cell-val accent">${fmt(p.stock * p.prixVente)} ${p.devise}</div>
+      </div>
+    </div>
+
+    <div class="section-title">🏭 Traçabilité</div>
+    <div class="fiche-grid">
+      <div class="fiche-cell full">
+        <div class="fiche-cell-lbl">Fournisseur</div>
+        <div class="fiche-cell-val" style="font-family:'DM Sans';font-weight:500">${p.fournisseur || '—'}</div>
+      </div>
+      <div class="fiche-cell full">
+        <div class="fiche-cell-lbl">Numéro de lot</div>
+        <div class="fiche-cell-val">${p.lot || '—'}</div>
+      </div>
+      <div class="fiche-cell">
+        <div class="fiche-cell-lbl">Date fabrication</div>
+        <div class="fiche-cell-val" style="font-size:.8rem">${p.dateFab ? new Date(p.dateFab).toLocaleDateString('fr-FR') : '—'}</div>
+      </div>
+      <div class="fiche-cell">
+        <div class="fiche-cell-lbl">Date expiration</div>
+        <div class="fiche-cell-val ${exp ? 'red' : daysToExp !== null && daysToExp < 60 ? 'yellow' : ''}" style="font-size:.8rem">${p.dateExp ? new Date(p.dateExp).toLocaleDateString('fr-FR') : '—'}</div>
+      </div>
+    </div>
+
+    ${p.notes ? `
+    <div class="section-title">📝 Notes</div>
+    <div class="fiche-cell full" style="background:var(--surface2);border-radius:var(--r2);padding:10px 12px;">
+      <div style="font-size:.85rem;color:var(--muted);line-height:1.5">${p.notes}</div>
+    </div>` : ''}
+
+    <div class="section-title">📊 Code-barres</div>
+    <div class="barcode-zone">
+      <svg id="fiche_bc_${p.id}"></svg>
+      <div style="font-family:'Space Mono',monospace;font-size:.75rem;color:#333">${p.code}</div>
+    </div>
+
+    <div class="fiche-actions">
+      <button class="btn-action primary" style="flex:1" onclick="downloadBarcode('${p.id}','${p.nom} ${p.contenance}')">⬇ Télécharger PNG</button>
+      <button class="btn-action" style="flex:1" onclick="closeModal('ficheModal');openEditForm('${p.id}')">✏ Modifier</button>
+    </div>
+  `;
+
+  document.getElementById('ficheModal').classList.add('open');
+
+  setTimeout(() => {
+    try {
+      JsBarcode(`#fiche_bc_${p.id}`, p.code, {
+        format: 'CODE128', width: 2.2, height: 75,
+        displayValue: true, fontSize: 13, margin: 6,
+        background: '#ffffff', lineColor: '#000000'
+      });
+    } catch(e) {}
+  }, 100);
+}
+
+// ══════════════════════════════════════
+// FORMULAIRE
+// ══════════════════════════════════════
+function openForm() {
+  editingId = null;
+  document.getElementById('formTitle').textContent = '➕ Nouveau Produit';
+  clearForm();
+  document.getElementById('formModal').classList.add('open');
+}
+
+function openEditForm(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  editingId = id;
+  document.getElementById('formTitle').textContent = '✏ Modifier Produit';
+  document.getElementById('f_nom').value = p.nom;
+  document.getElementById('f_categorie').value = p.categorie;
+  document.getElementById('f_contenance').value = p.contenance;
+  document.getElementById('f_code').value = p.code;
+  document.getElementById('f_description').value = p.description || '';
+  document.getElementById('f_prixVente').value = p.prixVente;
+  document.getElementById('f_prixAchat').value = p.prixAchat;
+  document.getElementById('f_tva').value = p.tva;
+  document.getElementById('f_devise').value = p.devise;
+  document.getElementById('f_stock').value = p.stock;
+  document.getElementById('f_stockMin').value = p.stockMin || 5;
+  document.getElementById('f_fournisseur').value = p.fournisseur || '';
+  document.getElementById('f_lot').value = p.lot || '';
+  document.getElementById('f_dateFab').value = p.dateFab || '';
+  document.getElementById('f_dateExp').value = p.dateExp || '';
+  document.getElementById('f_notes').value = p.notes || '';
+  calcMarge();
+  document.getElementById('formModal').classList.add('open');
+}
+
+function clearForm() {
+  ['f_nom','f_code','f_description','f_prixVente','f_prixAchat',
+   'f_stock','f_stockMin','f_fournisseur','f_lot','f_dateFab','f_dateExp','f_notes']
+  .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f_categorie').value = 'savon';
+  document.getElementById('f_contenance').value = '1L';
+  document.getElementById('f_tva').value = '19.25';
+  document.getElementById('f_devise').value = 'FCFA';
+  document.getElementById('margeVal').textContent = '— FCFA (—%)';
+}
+
+// Auto-generate code
+let codeSeq = 1000;
+function updateCodeAuto() {
+  if (editingId) return;
+  const cat = document.getElementById('f_categorie').value;
+  const cont = document.getElementById('f_contenance').value;
+  const prefixes = { savon: '237675', javel: '237240', desinfectant: '237310', autre: '237999' };
+  const sizes = { '250ml': '000250', '500ml': '000500', '1L': '001000', '2L': '002000', '5L': '005000', '10L': '010000' };
+  const prefix = prefixes[cat] || '237000';
+  const size = sizes[cont] || '001000';
+  document.getElementById('f_code').value = prefix + size.slice(-3) + '0';
+}
+
+function genCode() {
+  const cat = document.getElementById('f_categorie').value;
+  const prefixes = { savon: '237675', javel: '237240', desinfectant: '237310', autre: '237999' };
+  const rnd = String(Math.floor(Math.random() * 9999)).padStart(4,'0');
+  document.getElementById('f_code').value = (prefixes[cat]||'237000') + rnd + '00';
+}
+
+function calcMarge() {
+  const pv = parseFloat(document.getElementById('f_prixVente').value) || 0;
+  const pa = parseFloat(document.getElementById('f_prixAchat').value) || 0;
+  const tva = parseFloat(document.getElementById('f_tva').value) || 0;
+  if (!pv || !pa) { document.getElementById('margeVal').textContent = '— FCFA (—%)'; return; }
+  const factor = 1 + tva/100;
+  const pvHT = pv / factor;
+  const paHT = pa / factor;
+  const m = pvHT - paHT;
+  const mp = paHT ? (m / paHT * 100) : 0;
+  const dev = document.getElementById('f_devise').value;
+  document.getElementById('margeVal').textContent = `${fmt(m)} ${dev} (${fmt(mp)}%)`;
+  document.getElementById('margeVal').style.color = mp > 30 ? 'var(--green)' : mp > 15 ? 'var(--yellow)' : 'var(--red)';
+}
+
+function submitForm() {
+  const nom = document.getElementById('f_nom').value.trim();
+  const code = document.getElementById('f_code').value.trim();
+  const pv = parseFloat(document.getElementById('f_prixVente').value);
+  const pa = parseFloat(document.getElementById('f_prixAchat').value);
+  const stock = parseInt(document.getElementById('f_stock').value);
+
+  if (!nom || !code || isNaN(pv) || isNaN(pa) || isNaN(stock)) {
+    showToast('Remplissez tous les champs obligatoires (*)', true);
+    return;
+  }
+  if (code.length < 8) {
+    showToast('Code-barres invalide (min 8 caractères)', true);
+    return;
+  }
+
+  const produit = {
+    id: editingId || 'p' + Date.now(),
+    nom,
+    contenance: document.getElementById('f_contenance').value,
+    categorie: document.getElementById('f_categorie').value,
+    code,
+    description: document.getElementById('f_description').value,
+    prixVente: pv, prixAchat: pa,
+    tva: parseFloat(document.getElementById('f_tva').value),
+    devise: document.getElementById('f_devise').value,
+    stock, stockMin: parseInt(document.getElementById('f_stockMin').value) || 5,
+    fournisseur: document.getElementById('f_fournisseur').value,
+    lot: document.getElementById('f_lot').value,
+    dateFab: document.getElementById('f_dateFab').value,
+    dateExp: document.getElementById('f_dateExp').value,
+    notes: document.getElementById('f_notes').value
+  };
+
+  if (editingId) {
+    const idx = products.findIndex(x => x.id === editingId);
+    if (idx !== -1) products[idx] = produit;
+    showToast('✅ Produit modifié avec succès');
+  } else {
+    products.unshift(produit);
+    showToast('✅ Produit créé avec succès');
+  }
+
+  saveData();
+  closeModal('formModal');
+  renderList();
+}
+
+function deleteProduct(id) {
+  if (!confirm('Supprimer ce produit ?')) return;
+  products = products.filter(x => x.id !== id);
+  saveData();
+  renderList();
+  showToast('🗑 Produit supprimé');
+}
+
+// ══════════════════════════════════════
+// TÉLÉCHARGEMENT BARCODE
+// ══════════════════════════════════════
+function downloadBarcode(id, name) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = 400; canvas.height = 160;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, 400, 160);
+
+  const tmpSvg = document.createElement('svg');
+  document.body.appendChild(tmpSvg);
+  try {
+    JsBarcode(tmpSvg, p.code, {
+      format: 'CODE128', width: 2.5, height: 100,
+      displayValue: true, fontSize: 14, margin: 10,
+      background: '#ffffff', lineColor: '#000000'
+    });
+    const svgData = new XMLSerializer().serializeToString(tmpSvg);
+    const img = new Image();
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, 400, 140);
+      ctx.fillStyle = '#333';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.nom + ' ' + p.contenance, 200, 155);
+      const link = document.createElement('a');
+      link.download = `barcode_${name.replace(/\s/g,'_')}_${p.code}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      showToast('⬇ Code-barres téléchargé');
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  } catch(e) {
+    showToast('Erreur génération PNG', true);
+  }
+  document.body.removeChild(tmpSvg);
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderList();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => {
+    if (e.target === m) m.classList.remove('open');
+  });
+});
+
+// PWA install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+document.querySelector('.btn-install') && document.querySelector('.btn-install').addEventListener('click', () => {
+  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+  document.getElementById('installBanner').style.display = 'none';
+});
+// Show banner on Android anyway (manual instructions)
+if (/android/i.test(navigator.userAgent)) {
+  setTimeout(() => {
+    document.getElementById('installBanner').style.display = 'flex';
+  }, 1500);
+}
+
+// ══════════════════════════════════════
+// INIT
+// ══════════════════════════════════════
+loadData();
+renderList();
+</script>
+
+<!-- SERVICE WORKER pour PWA offline -->
+<script>
+if ('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE = 'stockpro-v1';
+const ASSETS = [location.href];
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+});
+self.addEventListener('fetch', e => {
+  e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+});
+  `.trim();
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+</script>
+
+</body>
+</html>
